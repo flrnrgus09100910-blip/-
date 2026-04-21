@@ -1,24 +1,401 @@
-This is free and unencumbered software released into the public domain.
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>디비스토어 클론 | 업종별 사업자DB</title>
+    <!-- Google Fonts & CSS Reset -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-Anyone is free to copy, modify, publish, use, compile, sell, or
-distribute this software, either in source code form or as a compiled
-binary, for any purpose, commercial or non-commercial, and by any
-means.
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #f4f6f9;
+            color: #1e2a3a;
+            line-height: 1.5;
+        }
 
-In jurisdictions that recognize copyright laws, the author or authors
-of this software dedicate any and all copyright interest in the
-software to the public domain. We make this dedication for the benefit
-of the public at large and to the detriment of our heirs and
-successors. We intend this dedication to be an overt act of
-relinquishment in perpetuity of all present and future rights to this
-software under copyright law.
+        /* 유틸리티 */
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR
-OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
-ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
-OTHER DEALINGS IN THE SOFTWARE.
+        /* 헤더 */
+        .header {
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            padding: 16px 0;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background: rgba(255,255,255,0.96);
+            backdrop-filter: blur(4px);
+        }
+        .header-inner {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .logo h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .logo p {
+            font-size: 0.75rem;
+            color: #5a6e7c;
+        }
+        .stats-badge {
+            display: flex;
+            gap: 20px;
+            background: #f0f2f5;
+            padding: 8px 18px;
+            border-radius: 60px;
+        }
+        .stat-item {
+            text-align: center;
+        }
+        .stat-number {
+            font-weight: 800;
+            font-size: 1.2rem;
+            color: #1e466e;
+        }
+        .stat-label {
+            font-size: 0.7rem;
+            color: #4a627a;
+        }
 
-For more information, please refer to <https://unlicense.org>
+        /* 메인 카드 */
+        .card {
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.02), 0 2px 6px rgba(0,0,0,0.05);
+            padding: 24px 28px;
+            margin: 32px 0;
+        }
+
+        /* 탭 메뉴 */
+        .tabs {
+            display: flex;
+            gap: 8px;
+            border-bottom: 2px solid #e9edf2;
+            margin-bottom: 28px;
+            flex-wrap: wrap;
+        }
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 12px 24px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            color: #5b6f82;
+            transition: 0.2s;
+            border-radius: 40px;
+        }
+        .tab-btn.active {
+            color: #1e466e;
+            background: #eef3fc;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+
+        /* 테이블 영역 (모바일 대응) */
+        .table-wrapper {
+            overflow-x: auto;
+            border-radius: 20px;
+            margin: 20px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            min-width: 640px;
+        }
+        th {
+            background: #f8fafd;
+            padding: 14px 12px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 1px solid #e2e8f0;
+            color: #1e2f3e;
+        }
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #edf2f7;
+            color: #2c3f4f;
+        }
+        .badge-total {
+            background: #eef2ff;
+            padding: 6px 12px;
+            border-radius: 100px;
+            font-size: 0.8rem;
+            display: inline-block;
+            margin-bottom: 16px;
+        }
+
+        /* 검색 필터 */
+        .search-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin: 20px 0 16px;
+            align-items: center;
+        }
+        .search-input {
+            flex: 2;
+            padding: 12px 18px;
+            border: 1px solid #cbd5e1;
+            border-radius: 48px;
+            font-size: 0.9rem;
+            transition: 0.2s;
+        }
+        .search-input:focus {
+            outline: none;
+            border-color: #2a5298;
+            box-shadow: 0 0 0 2px rgba(42,82,152,0.2);
+        }
+        .filter-select {
+            padding: 12px 18px;
+            border-radius: 48px;
+            border: 1px solid #cbd5e1;
+            background: white;
+            font-size: 0.9rem;
+        }
+        .btn {
+            background: #1e466e;
+            border: none;
+            padding: 10px 22px;
+            border-radius: 40px;
+            color: white;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-outline {
+            background: white;
+            border: 1px solid #cbd5e1;
+            color: #2c3f4f;
+        }
+        .footer {
+            text-align: center;
+            padding: 32px 20px;
+            font-size: 0.75rem;
+            color: #6c7e8f;
+            border-top: 1px solid #e2e8f0;
+            margin-top: 40px;
+        }
+        @media (max-width: 680px) {
+            .stats-badge { order: 2; width: 100%; justify-content: space-between; }
+            .header-inner { flex-direction: column; align-items: stretch; }
+            .card { padding: 16px; }
+            .tab-btn { padding: 8px 16px; font-size: 0.85rem; }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container header-inner">
+            <div class="logo">
+                <h1>디비마켓</h1>
+                <p>전국 사업자DB · 업종별 타겟 리드</p>
+            </div>
+            <div class="stats-badge" id="statsArea">
+                <div class="stat-item"><span class="stat-number" id="totalDB">0</span><div class="stat-label">전체DB수</div></div>
+                <div class="stat-item"><span class="stat-number" id="newToday">0</span><div class="stat-label">신규등록(오늘)</div></div>
+                <div class="stat-item"><span class="stat-number" id="pending">0</span><div class="stat-label">대기(분류작업)</div></div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="card">
+            <div class="tabs" id="tabButtons">
+                <button class="tab-btn active" data-tab="tab1">📁 포털DB</button>
+                <button class="tab-btn" data-tab="tab2">🛒 오픈마켓DB</button>
+                <button class="tab-btn" data-tab="tab3">📋 인허가DB</button>
+                <button class="tab-btn" data-tab="tab4">🏢 기업DB</button>
+            </div>
+
+            <!-- 포털DB 탭 -->
+            <div id="tab1" class="tab-content active">
+                <div class="badge-total">📌 국내 포털 기준 등록업체 · 총 <span id="portalTotal">0</span>건</div>
+                <div class="search-bar">
+                    <input type="text" id="searchPortal" class="search-input" placeholder="업체명 또는 업종 검색 (예: 학원, 치킨)">
+                    <select id="categoryPortal" class="filter-select">
+                        <option value="">전체 업종</option>
+                        <option value="교육">교육/학원</option>
+                        <option value="음식">음식/외식</option>
+                        <option value="의료">의료/병원</option>
+                        <option value="미용">미용/네일</option>
+                    </select>
+                    <button class="btn" id="searchPortalBtn">검색</button>
+                </div>
+                <div class="table-wrapper">
+                    <table id="portalTable">
+                        <thead>
+                            <tr><th>분류일</th><th>구분</th><th>업체명</th><th>일반전화</th><th>주소</th></tr>
+                        </thead>
+                        <tbody id="portalTbody"><tr><td colspan="5">로딩 중...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+            <!-- 오픈마켓DB 탭 (간략 샘플) -->
+            <div id="tab2" class="tab-content">
+                <div class="badge-total">🛍️ 쇼핑몰(N샵, 쿠팡 등) · 총 <span id="openTotal">0</span>건</div>
+                <div class="table-wrapper"><table><thead><tr><th>업체명</th><th>플랫폼</th><th>카테고리</th><th>전화번호</th></tr></thead><tbody id="openTbody"></tbody></table></div>
+            </div>
+            <!-- 인허가DB 탭 -->
+            <div id="tab3" class="tab-content">
+                <div class="badge-total">✅ 국세청 기준 인허가 업체 · 총 <span id="licenseTotal">0</span>건</div>
+                <div class="search-bar"><input type="text" id="searchLicense" class="search-input" placeholder="업체명 검색"><button class="btn" id="searchLicenseBtn">검색</button></div>
+                <div class="table-wrapper"><table><thead><tr><th>업체명</th><th>업종구분</th><th>주소</th><th>사업자등록일</th></tr></thead><tbody id="licenseTbody"></tbody></table></div>
+            </div>
+            <!-- 기업DB -->
+            <div id="tab4" class="tab-content">
+                <div class="badge-total">🏛️ 대·중견·중소기업 · 총 <span id="corpTotal">0</span>건</div>
+                <div class="table-wrapper"><table><thead><tr><th>기업명</th><th>대표자</th><th>종사자수</th><th>업종</th></tr></thead><tbody id="corpTbody"></tbody></table></div>
+            </div>
+        </div>
+        <div style="background:#f9fafc; border-radius: 20px; padding: 20px; font-size:0.85rem; text-align:center;">
+            ⚡ 본 데모는 실제 데이터가 아닌 샘플 데이터로 작동하며, db-store.kr의 디자인/구조를 학습용으로 클론했습니다.<br>
+            실제 운영 시에는 백엔드 API + 데이터베이스 + 결제모듈이 필요합니다.
+        </div>
+    </main>
+    <footer class="footer">
+        © 2025 디비마켓 데모 | 전국 사업자DB 샘플 뷰어 | 문의: demo@example.com<br>
+        ※ 본 서비스는 학습 목적 클론이며, 무단 영리사용을 금지합니다.
+    </footer>
+
+    <script>
+        // ---------- Mock 데이터 (실제로는 서버에서 받아와야 함) ----------
+        const portalMock = [
+            { date: "4분전", type: "콘택트렌즈전문", name: "윙크렌즈천호점", phone: "0507-****-9124", addr: "서울 강동구" },
+            { date: "6분전", type: "법률사무소", name: "법률사무소이룬", phone: "0507-****-4017", addr: "경기 수원시" },
+            { date: "7분전", type: "한식", name: "급한마음탕평화광장점", phone: "0507-****-5802", addr: "전남 목포시" },
+            { date: "16분전", type: "카페", name: "고냉이자점", phone: "0507-****-6929", addr: "문화의길" },
+            { date: "27분전", type: "영어교육", name: "넥스트학원", phone: "050-****-5825", addr: "다정중앙로" },
+            { date: "1시간전", type: "필라테스", name: "스포츠필라테스", phone: "0507-****-7400", addr: "경기 안산시" },
+        ];
+        const openMock = [
+            { name: "전자랜드 공식몰", platform: "쿠팡", category: "가전", phone: "02-****-1111" },
+            { name: "데일리룩스", platform: "G마켓", category: "패션", phone: "070-****-2233" },
+        ];
+        const licenseMock = [
+            { name: "가야원", type: "식품제조가공업", addr: "전남 해남군", regDate: "2026-02-10" },
+            { name: "하늘약국", type: "약국", addr: "서울 마포구", regDate: "2026-01-05" },
+            { name: "취화선악홀", type: "유흥주점영업", addr: "전북 김제시", regDate: "2008-05-12" },
+        ];
+        const corpMock = [
+            { name: "한국디지털솔루션", ceo: "김대표", emp: "52명", sector: "SW개발" },
+            { name: "삼영제조", ceo: "이영희", emp: "128명", sector: "자동차부품" }
+        ];
+
+        let portalData = [...portalMock];
+        let licenseData = [...licenseMock];
+
+        // 통계 업데이트
+        function updateStats() {
+            document.getElementById("totalDB").innerText = "7,908,633";
+            document.getElementById("newToday").innerText = "333";
+            document.getElementById("pending").innerText = "1,403";
+            document.getElementById("portalTotal").innerText = portalMock.length;
+            document.getElementById("openTotal").innerText = openMock.length;
+            document.getElementById("licenseTotal").innerText = licenseMock.length;
+            document.getElementById("corpTotal").innerText = corpMock.length;
+        }
+
+        function renderPortalTable(data) {
+            const tbody = document.getElementById("portalTbody");
+            if(!data.length) { tbody.innerHTML = '<tr><td colspan="5">검색 결과가 없습니다.</td></tr>'; return; }
+            tbody.innerHTML = data.map(item => `
+                <tr>
+                    <td>${item.date}</td><td>${item.type}</td><td>${item.name}</td><td>${item.phone}</td><td>${item.addr}</td>
+                </tr>
+            `).join("");
+        }
+
+        function renderOpenTable() {
+            const tbody = document.getElementById("openTbody");
+            tbody.innerHTML = openMock.map(item => `<tr><td>${item.name}</td><td>${item.platform}</td><td>${item.category}</td><td>${item.phone}</td></tr>`).join("");
+        }
+        function renderLicenseTable(data) {
+            const tbody = document.getElementById("licenseTbody");
+            if(!data.length) { tbody.innerHTML = '<tr><td colspan="4">검색 결과 없음</td></tr>'; return; }
+            tbody.innerHTML = data.map(item => `<tr><td>${item.name}</td><td>${item.type}</td><td>${item.addr}</td><td>${item.regDate}</td></tr>`).join("");
+        }
+        function renderCorpTable() {
+            const tbody = document.getElementById("corpTbody");
+            tbody.innerHTML = corpMock.map(item => `<tr><td>${item.name}</td><td>${item.ceo}</td><td>${item.emp}</td><td>${item.sector}</td></tr>`).join("");
+        }
+
+        // 포털 검색 필터
+        function filterPortal() {
+            const keyword = document.getElementById("searchPortal").value.trim().toLowerCase();
+            const categoryVal = document.getElementById("categoryPortal").value;
+            let filtered = portalMock.filter(item => {
+                const matchName = item.name.toLowerCase().includes(keyword) || item.type.toLowerCase().includes(keyword);
+                const matchCat = categoryVal === "" ? true : (item.type.includes(categoryVal) || (categoryVal==="교육" && item.type.includes("교육")) || (categoryVal==="음식" && item.type.includes("식")));
+                return matchName && matchCat;
+            });
+            renderPortalTable(filtered);
+        }
+        function filterLicense() {
+            const kw = document.getElementById("searchLicense").value.trim().toLowerCase();
+            const filtered = licenseMock.filter(item => item.name.toLowerCase().includes(kw) || item.type.toLowerCase().includes(kw));
+            renderLicenseTable(filtered);
+        }
+
+        // 탭 전환
+        function initTabs() {
+            const btns = document.querySelectorAll(".tab-btn");
+            const contents = document.querySelectorAll(".tab-content");
+            btns.forEach(btn => {
+                btn.addEventListener("click", () => {
+                    const tabId = btn.getAttribute("data-tab");
+                    btns.forEach(b => b.classList.remove("active"));
+                    btn.classList.add("active");
+                    contents.forEach(c => c.classList.remove("active"));
+                    document.getElementById(tabId).classList.add("active");
+                    // 탭 전환시 각 테이블 다시 그리기 (초기화)
+                    if(tabId === "tab1") filterPortal();
+                    if(tabId === "tab2") renderOpenTable();
+                    if(tabId === "tab3") renderLicenseTable(licenseData);
+                    if(tabId === "tab4") renderCorpTable();
+                });
+            });
+        }
+
+        document.getElementById("searchPortalBtn").addEventListener("click", filterPortal);
+        document.getElementById("searchLicenseBtn").addEventListener("click", filterLicense);
+        document.getElementById("searchPortal").addEventListener("keyup", (e) => { if(e.key === "Enter") filterPortal(); });
+        document.getElementById("searchLicense").addEventListener("keyup", (e) => { if(e.key === "Enter") filterLicense(); });
+
+        function init() {
+            updateStats();
+            renderPortalTable(portalData);
+            renderOpenTable();
+            renderLicenseTable(licenseData);
+            renderCorpTable();
+            initTabs();
+        }
+        init();
+    </script>
+</body>
+</html>
